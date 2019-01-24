@@ -15,7 +15,7 @@
   </div>
 </template>
 
-<script type="text/ecmascript-6">
+<script>
   const POSITIVE = 0;
   const NEGATIVE = 1;
   const ALL = 2;
@@ -64,16 +64,13 @@
         if (!event._constructed) {
           return;
         }
-        this.selectType = type;
-        // 派发事件：子组件变化时，父组件也变化，向上传递
-        this.$dispatch('ratingtype.select', type);
+        this.$emit('select', type);
       },
       toggleContent(event) {
         if (!event._constructed) {
           return;
         }
-        this.onlyContent = !this.onlyContent;
-        this.$dispatch('content.toggle', this.onlyContent);
+        this.$emit('toggle');
       }
     }
   };

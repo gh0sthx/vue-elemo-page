@@ -1,10 +1,10 @@
 <template>
   <div class="star" :class="starType">
-    <span v-for="itemClass in itemClasses" :class="itemClass" class="star-item" track-by="$index"></span>
+    <span v-for="(itemClass,index) in itemClasses" :class="itemClass" class="star-item" :key="index"></span>
   </div>
 </template>
 
-<script type="text/ecmascript-6">
+<script>
   const LENGTH = 5;
   const CLS_ON = 'on';
   const CLS_HALF = 'half';
@@ -25,18 +25,15 @@
       },
       itemClasses() {
         let result = [];
-        // 获取分数
         let score = Math.floor(this.score * 2) / 2;
         let hasDecimal = score % 1 !== 0;
         let integer = Math.floor(score);
         for (let i = 0; i < integer; i++) {
           result.push(CLS_ON);
         }
-        // 判断是否有半星
         if (hasDecimal) {
           result.push(CLS_HALF);
         }
-        // 循环添加空星
         while (result.length < LENGTH) {
           result.push(CLS_OFF);
         }

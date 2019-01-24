@@ -1,5 +1,5 @@
 <template>
-  <div class="ratings" v-el:ratings>
+  <div class="ratings" ref="ratings">
     <div class="ratings-content">
       <div class="overview">
         <div class="overview-left">
@@ -25,7 +25,7 @@
         </div>
       </div>
       <split></split>
-      <ratingselect :select-type="selectType" :only-content="onlyContent" :desc="desc"
+      <ratingselect @select="selectRating" @toggle="toggleContent" :selectType="selectType" :onlyContent="onlyContent"
                     :ratings="ratings"></ratingselect>
       <div class="rating-wrapper">
         <ul>
@@ -55,12 +55,13 @@
   </div>
 </template>
 
-<script type="text/ecmascript-6">
+<script>
   import BScroll from 'better-scroll';
   import {formatDate} from 'common/js/date';
   import star from 'components/star/star';
   import ratingselect from 'components/ratingselect/ratingselect';
   import split from 'components/split/split';
+  const response = require('../../common/data/ratings.json');
 
   const ALL = 2;
   const ERR_OK = 0;
@@ -79,17 +80,26 @@
       };
     },
     created() {
-      this.$http.get('/api/ratings').then((response) => {
-        response = response.body;
-        if (response.errno === ERR_OK) {
-          this.ratings = response.data;
-          this.$nextTick(() => {
-            this.scroll = new BScroll(this.$els.ratings, {
-              click: true
-            });
+      // this.$http.get('/api/ratings').then((response) => {
+      //   response = response.body;
+      //   if (response.errno === ERR_OK) {
+      //     this.ratings = response.data;
+      //     this.$nextTick(() => {
+      //       this.scroll = new BScroll(this.$refs.ratings, {
+      //         click: true
+      //       });
+      //     });
+      //   }
+      // });
+
+      if (response.errno === ERR_OK) {
+        this.ratings = response.data;
+        this.$nextTick(() => {
+          this.scroll = new BScroll(this.$refs.ratings, {
+            click: true
           });
-        }
-      });
+        });
+      }
     },
     methods: {
       needShow(type, text) {
@@ -101,17 +111,15 @@
         } else {
           return type === this.selectType;
         }
-      }
-    },
-    events: {
-      'ratingtype.select'(type) {
+      },
+      selectRating(type) {
         this.selectType = type;
         this.$nextTick(() => {
           this.scroll.refresh();
         });
       },
-      'content.toggle'(onlyContent) {
-        this.onlyContent = onlyContent;
+      toggleContent() {
+        this.onlyContent = !this.onlyContent;
         this.$nextTick(() => {
           this.scroll.refresh();
         });
@@ -150,7 +158,6 @@
         width: 137px
         border-right: 1px solid rgba(7, 17, 27, 0.1)
         text-align: center
-        // 解决iphone5页面错乱问题
         @media only screen and (max-width: 320px)
           flex: 0 0 120px
           width: 120px
