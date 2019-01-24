@@ -1,10 +1,13 @@
 # Vue高仿饿了么APP（用户端）
+(http://coding.imooc.com/class/74.html)
+
 - 使用vue@1.0
   - mock假数据存储在本地
   - 使用stylus编写样式
   - 使用eslint进行js代码的规范
   - 使用[better-scroll](https://github.com/ustbhuangyi/better-scroll)进行联动滑动
-- vue@2.x
+---
+- 使用vue@2.0
   - 修正package.json
   - 修正route，keeplive使用方式
   - 修正v-for,v-el,v-ref
@@ -13,8 +16,9 @@
   - 事件监听变化，废除 events 属性
   - 不能在子组件直接修改父组件传入的prop
   - 过渡的变化，transition组件
+---
 - vue@2.5 + cubi-ui 
-(http://coding.imooc.com/class/74.html)
+
 
 ## 主要问题
 - better-scroll不能滚动？
