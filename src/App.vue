@@ -1,73 +1,81 @@
 <template>
-  <div>
+  <div id="app">
     <v-header :seller="seller"></v-header>
-    <div class="tab border-1px">
-      <div class="tab-item">
-        <router-link to="/goods">商品</router-link>
-      </div>
-      <div class="tab-item">
-        <router-link to="/ratings">评论</router-link>
-      </div>
-      <div class="tab-item">
-        <router-link to="/seller">商家</router-link>
-      </div>
+    <div class="tab-wrap">
+      <tab :tabs="tabs" ></tab>
     </div>
-    <keep-alive>
-      <router-view :seller="seller"></router-view>
-    </keep-alive>
   </div>
 </template>
 
-<script type="text/ecmascript-6">
-  import {urlParse} from 'common/js/util';
-  import header from 'components/header/header.vue';
+<script>
+import qs from 'query-string'
+import VHeader from 'components/v-header/v-header'
+import { getSeller, getGoods, getRatings } from 'api'
+import Tab from 'components/tab/tab'
+import Goods from 'components/goods/goods'
+import Ratings from 'components/ratings/ratings'
+import Seller from 'components/seller/seller'
 
-  const ERR_OK = 0;
+export default {
+  data() {
+    return {
+      seller: {
+        id: qs.parse(location.search).id
+      }
 
-  export default {
-    data() {
-      return {
-        seller: {
-          id: (() => {
-            let queryParam = urlParse();
-            return queryParam.id;
-          })()
-        }
-      };
-    },
-    created() {
-      this.$http.get('/api/seller?id=' + this.seller.id).then((response) => {
-        response = response.body;
-        if (response.errno === ERR_OK) {
-          this.seller = Object.assign({}, this.seller, response.data);
-        }
-      });
-    },
-    components: {
-      'v-header': header
     }
-  };
-
+  },
+  computed: {
+    tabs() {
+      return [
+        {
+          label: '商品',
+          component: Goods,
+          data: {
+            seller: this.seller
+          }
+        },
+        {
+          label: '评价',
+          component: Ratings,
+          data: {
+            seller: this.seller
+          }
+        },
+        {
+          label: '商家',
+          component: Seller,
+          data: {
+            seller: this.seller
+          }
+        }
+      ]
+    }
+  },
+  created() {
+    this._getSeller()
+  },
+  methods: {
+    _getSeller() {
+      getSeller({
+          id: this.seller.id
+        }).then((seller) => {
+          this.seller = Object.assign({}, this.seller, seller)
+      })
+    }
+  },
+  components: {
+    VHeader,
+    Tab
+  }
+}
 </script>
-
 <style lang="stylus" rel="stylesheet/stylus">
-  @import "./common/stylus/mixin.styl"
-
-  .tab
-    display: flex
-    width: 100%
-    height: 40px
-    line-height: 40px
-    // border-bottom: 1px solid rgba(7, 17, 27, 0.1) 利用草料二维码进行手机调试（手机和电脑在同一局域网），使用伪类解决移动端dpr的问题（移动端进行缩放）
-    border-1px(rgba(7, 17, 27, 0.1))
-    .tab-item
-      flex: 1
-      text-align: center
-      // & 表示父级（.tab-item）
-      & > a
-        display: block
-        font-size: 14px
-        color: rgb(77, 85, 93)
-        &.active
-          color: rgb(240, 20, 20)
+#app
+  .tab-wrap
+    position: fixed;
+    top: 134px
+    left: 0
+    bottom: 0
+    right: 0
 </style>

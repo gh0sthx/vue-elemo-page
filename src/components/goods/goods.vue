@@ -1,281 +1,313 @@
 <template>
-  <div>
-    <div class="goods">
-      <div class="menu-wrapper" ref="menuWrapper">
-        <ul>
-          <li v-for="(item,index) in goods" class="menu-item" :class="{'current':currentIndex===index}"
-              @click="selectMenu(index,$event)">
-          <span class="text border-1px">
-            <span v-show="item.type>0" class="icon" :class="classMap[item.type]"></span>{{item.name}}
-          </span>
-          </li>
-        </ul>
-      </div>
-      <div class="foods-wrapper" ref="foodsWrapper">
-        <ul>
-          <li v-for="item in goods" class="food-list" ref="foodList">
-            <h1 class="title">{{item.name}}</h1>
-            <ul>
-              <li @click="selectFood(food,$event)" v-for="food in item.foods" class="food-item border-1px">
-                <div class="icon">
-                  <img width="57" height="57" :src="food.icon">
+  <div class="goods">
+    <div class="scroll-nav-wrapper">
+      <cube-scroll-nav
+        :side="true"
+        :data="goods"
+        v-if="goods.length"
+        :options="scrollOptions">
+        <template slot="bar" slot-scope="props">
+          <cube-scroll-nav-bar
+            direction="vertical"
+            :labels="props.labels"
+            :txts="barTxts"
+            :current="props.current"
+          >
+            <template slot-scope="props">
+              <div class="text">
+                <support-icon
+                  v-if="props.txt.type>=1"
+                  :size=3
+                  :type="props.txt.type"
+                ></support-icon>
+                <span>{{props.txt.name}}</span>
+                <span class="num" v-if="props.txt.count">
+                  <bubble :totalCount="props.txt.count"></bubble>
+                </span>
+              </div>
+            </template>
+          </cube-scroll-nav-bar>
+        </template>
+        <cube-scroll-nav-panel
+          v-for="item in goods"
+          :key="item.name"
+          :label="item.name"
+          :title="item.name">
+          <ul class="food-wrap">
+            <li v-for="food in item.foods" :key="food.name" class="food border-bottom-1px" @click="openFood(food)">
+              <div class="food-detail">
+                <img :src="food.icon" width="57" height="57" class="pic">
+                <div class="text">
+                  <div class="name">{{food.name}}</div>
+                  <div class="description" v-if="food.description">{{food.description}}</div>
+                  <div class="info">
+                    <span class="sellCount">{{food.sellCount}}</span>
+                    <span class="rating">{{food.rating}}%</span>
+                  </div>
+                  <div class="price-info">
+                    <span class="price"><mark>￥</mark>{{food.price}}</span>
+                    <span class="oldPrice" v-if="food.oldPrice"><mark>￥</mark>{{food.oldPrice}}</span>
+                  </div>
                 </div>
-                <div class="content">
-                  <h2 class="name">{{food.name}}</h2>
-                  <p class="desc">{{food.description}}</p>
-                  <div class="extra">
-                    <span class="count">月售{{food.sellCount}}份</span><span>好评率{{food.rating}}%</span>
-                  </div>
-                  <div class="price">
-                    <span class="now">￥{{food.price}}</span><span class="old"
-                                                                  v-show="food.oldPrice">￥{{food.oldPrice}}</span>
-                  </div>
-                  <div class="cartcontrol-wrapper">
-                    <cartcontrol @add="addFood" :food="food"></cartcontrol>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-      <shopcart ref="shopcart" :selectFoods="selectFoods" :deliveryPrice="seller.deliveryPrice"
-                :minPrice="seller.minPrice"></shopcart>
+              </div>
+              <cart-ctrol class="art-ctrol" :food="food" @add="onadd"></cart-ctrol>
+            </li>
+          </ul>
+        </cube-scroll-nav-panel>
+      </cube-scroll-nav>
     </div>
-    <food @add="addFood" :food="selectedFood" ref="food"></food>
+    <div class="shop-wrap">
+      <cart-shop
+        ref="shopCart"
+        :select-food="selectFood"
+        :delivery-price="seller.deliveryPrice"
+        :min-price="seller.minPrice"
+      >
+      </cart-shop>
+    </div>
   </div>
 </template>
 
 <script>
-  import BScroll from 'better-scroll';
-  import shopcart from 'components/shopcart/shopcart';
-  import cartcontrol from 'components/cartcontrol/cartcontrol';
-  import food from 'components/food/food';
-  const response = require('../../common/data/goods.json');
+import { getGoods } from 'api'
+import SupportIcon from 'components/support-icon/support-icon'
+import CartCtrol from 'components/cart-ctrol/cart-ctrol'
+import CartShop from 'components/cart-shop/cart-shop'
+import Bubble from 'components/bubble/bubble'
 
-  const ERR_OK = 0;
-
-  export default {
-    props: {
-      seller: {
-        type: Object
+export default {
+  props: {
+    data: {
+      type: Object,
+      default() {
+        return {}
+      }
+    }
+  },
+  data() {
+    return {
+      goods: [],
+			selectedFood: {},
+      scrollOptions: {
+        click: false,
+        directionLockThreshold: 0
+      }
+    }
+  },
+  methods: {
+    fetch() {
+      if (!this.fetched) {
+        this.fetched = true
+        getGoods({
+          id: this.seller.id
+        }).then(goods => {
+          this.goods = goods
+        })
       }
     },
-    data() {
-      return {
-        goods: [],
-        listHeight: [],
-        scrollY: 0,
-        selectedFood: {}
-      };
+    onadd(el) {
+      this.$refs.shopCart.drop(el)
     },
-    computed: {
-      currentIndex() {
-        for (let i = 0; i < this.listHeight.length; i++) {
-          let height1 = this.listHeight[i];
-          let height2 = this.listHeight[i + 1];
-          if (!height2 || (this.scrollY >= height1 && this.scrollY < height2)) {
-            return i;
+		openFood(food) {
+			this.selectedFood = food
+			this._showFood()
+			this._showShopcartsticky()
+		},
+		_showFood() {
+			this.openFoodCom = this.openFoodCom || this.$createFood({
+				$props: {
+					food: 'selectedFood' // 要传为响应式的
+        },
+        $events: {
+          leave: () => {
+            this._hideShopcartsticky()
+          },
+          add: (target) => {
+            this.shopCartStycky.drop(target)
           }
         }
-        return 0;
-      },
-      selectFoods() {
-        let foods = [];
-        this.goods.forEach((good) => {
-          good.foods.forEach((food) => {
-            if (food.count) {
-              foods.push(food);
-            }
-          });
-        });
-        return foods;
-      }
+			})
+			this.openFoodCom.show()
+		},
+		_showShopcartsticky() {
+			this.shopCartStycky = this.shopCartStycky || this.$createShopCartSticky({
+				$props: {
+					selectFood: 'selectFood',
+					deliveryPrice: this.seller.deliveryPrice,
+					minPrice: this.seller.minPrice,
+					fold: true
+				}
+			})
+			this.shopCartStycky.show()
+		},
+		_hideShopcartsticky() {
+			this.shopCartStycky.hide()
+		}
+  },
+  computed: {
+    seller() {
+      return this.data.seller
     },
-    created() {
-      this.classMap = ['decrease', 'discount', 'special', 'invoice', 'guarantee'];
-
-      // this.$http.get('/api/goods').then((response) => {
-      //   response = response.body;
-      //   if (response.errno === ERR_OK) {
-      //     this.goods = response.data;
-      //     this.$nextTick(() => {
-      //       this._initScroll();
-      //       this._calculateHeight();
-      //     });
-      //   }
-      // });
-
-      if (response.errno === ERR_OK) {
-        this.goods = response.data;
-        this.$nextTick(() => {
-          this._initScroll();
-          this._calculateHeight();
-        });
-      }
+    selectFood() {
+      let foods = []
+      this.goods.forEach((good) => {
+        good.foods.forEach((food) => {
+          if (food.count) {
+            foods.push(food)
+          }
+        })
+      })
+      return foods
     },
-    methods: {
-      selectMenu(index, event) {
-        if (!event._constructed) {
-          return;
-        }
-        let foodList = this.$refs.foodList;
-        let el = foodList[index];
-        this.foodsScroll.scrollToElement(el, 300);
-      },
-      selectFood(food, event) {
-        if (!event._constructed) {
-          return;
-        }
-        this.selectedFood = food;
-        this.$refs.food.show();
-      },
-      addFood(target) {
-        this._drop(target);
-      },
-      _drop(target) {
-        // 体验优化,异步执行下落动画
-        this.$nextTick(() => {
-          this.$refs.shopcart.drop(target);
-        });
-      },
-      _initScroll() {
-        this.meunScroll = new BScroll(this.$refs.menuWrapper, {
-          click: true
-        });
-
-        this.foodsScroll = new BScroll(this.$refs.foodsWrapper, {
-          click: true,
-          probeType: 3
-        });
-
-        this.foodsScroll.on('scroll', (pos) => {
-          this.scrollY = Math.abs(Math.round(pos.y));
-        });
-      },
-      _calculateHeight() {
-        let foodList = this.$refs.foodList;
-        let height = 0;
-        this.listHeight.push(height);
-        for (let i = 0; i < foodList.length; i++) {
-          let item = foodList[i];
-          height += item.clientHeight;
-          this.listHeight.push(height);
-        }
-      }
-    },
-    components: {
-      shopcart,
-      cartcontrol,
-      food
+    barTxts() {
+      let ret = []
+      this.goods.forEach((good) => {
+        const { type, name, foods } = good
+        let count = 0
+        foods.forEach((food) => {
+          count += food.count || 0
+        })
+        ret.push({
+          type,
+          name,
+          count
+        })
+      })
+      return ret
     }
-  };
+  },
+  components: {
+    SupportIcon,
+    CartCtrol,
+    CartShop,
+    Bubble
+  }
+}
 </script>
 
-<style lang="stylus" rel="stylesheet/stylus">
-  @import "../../common/stylus/mixin.styl"
+<style lang="stylus" scoped>
+@import '~common/stylus/variable'
+@import '~common/stylus/mixin'
 
-  .goods
-    display: flex
+.border-bottom-1px
+  border-1px($color-row-line)
+
+.goods
+  position: relative
+  text-align: left
+  height: 100%
+  .scroll-nav-wrapper
     position: absolute
-    top: 174px
-    bottom: 46px
-    width: 100%
+    left:0
+    top:0
+    right:0
+    bottom: 48px
+   >>>.cube-scroll-nav-bar
+    width: 80px
+    white-space: normal
     overflow: hidden
-    .menu-wrapper
-      flex: 0 0 80px
-      width: 80px
-      background: #f3f5f7
-      .menu-item
-        display: table
-        height: 54px
-        width: 56px
-        padding: 0 12px
-        line-height: 14px
-        &.current
-          position: relative
-          z-index: 10
-          margin-top: -1px
-          background: #fff
-          font-weight: 700
-          .text
-            border-none()
-        .icon
-          display: inline-block
-          vertical-align: top
-          width: 12px
-          height: 12px
-          margin-right: 2px
-          background-size: 12px 12px
-          background-repeat: no-repeat
-          &.decrease
-            bg-image('decrease_3')
-          &.discount
-            bg-image('discount_3')
-          &.guarantee
-            bg-image('guarantee_3')
-          &.invoice
-            bg-image('invoice_3')
-          &.special
-            bg-image('special_3')
-        .text
-          display: table-cell
-          width: 56px
-          vertical-align: middle
-          border-1px(rgba(7, 17, 27, 0.1))
-          font-size: 12px
-    .foods-wrapper
-      flex: 1
-      .title
-        padding-left: 14px
-        height: 26px
-        line-height: 26px
-        border-left: 2px solid #d9dde1
-        font-size: 12px
-        color: rgb(147, 153, 159)
-        background: #f3f5f7
-      .food-item
+  >>>.cube-scroll-nav-bar-item
+    padding:0 12px
+    display: flex
+    align-items: center
+    height: 54px
+    line-height: 14px
+    font-size: 12px
+    background: $background-dark4
+    color: $clor-dark1
+    font-weight: 200
+    .text
+        flex: 1
+        position: relative
+    .num
+      position: absolute
+      right: -4px
+      top: -10px
+    .support-icon
+      display: inline-block
+      vertical-align: top
+      margin-right: 4px
+  >>>.cube-scroll-nav-bar-item_active
+    background: #fff
+    color: #000
+  >>>.cube-scroll-nav-panel-title
+    height: 26px
+    padding-left: 12px
+    background: $background-dark4
+    font-size: 12px
+    color: rgb(147,153,159)
+    line-height: 26px
+    border-left: 2px solid #d9dde1
+
+  .food-wrap
+    paddign-right: 18px
+    .food
+      padding: 18px 0 18px 18px
+      .art-ctrol
+        position: absolute
+        right: 18px
+        bottom: 18px
+      .food-detail
         display: flex
-        margin: 18px
-        padding-bottom: 18px
-        border-1px(rgba(7, 17, 27, 0.1))
-        &:last-child
-          border-none()
-          margin-bottom: 0
-        .icon
-          flex: 0 0 57px
+        .pic
+          display: block
+          border-radius: 2px
+          width: 57px
+          height: 57px
+          overflow: hidden
           margin-right: 10px
-        .content
-          flex: 1
+        .text
+          flex：1
           .name
-            margin: 2px 0 8px 0
-            height: 14px
             line-height: 14px
-            font-size: 14px
-            color: rgb(7, 17, 27)
-          .desc, .extra
-            line-height: 10px
-            font-size: 10px
-            color: rgb(147, 153, 159)
-          .desc
-            line-height: 12px
+            margin-right: 2px
             margin-bottom: 8px
-          .extra
-            .count
-              margin-right: 12px
-          .price
-            font-weight: 700
-            line-height: 24px
-            .now
-              margin-right: 8px
-              font-size: 14px
-              color: rgb(240, 20, 20)
-            .old
-              text-decoration: line-through
+            font-size: 14px
+            color: rgb(7,17,27)
+          .description,.info
+            line-height: 10px
+            margin-bottom: 8px
+            font-size: 10px
+            color: rgb(147,153,159)
+          .info
+            font-size:0
+            span
+              display: inline-block
               font-size: 10px
-              color: rgb(147, 153, 159)
-          .cartcontrol-wrapper
-            position: absolute
-            right: 0
-            bottom: 12px
+              margin-right: 12px
+              &.rating
+               margin-right: 0
+          .price-info
+            font-size: 0
+            span
+              display: inline-block
+              &.price
+                line-height: 24px
+                font-size: 14px
+                font-weight: 700
+                color:$color-red
+                margin-right: 8px
+                mark
+                  background: none
+                  font-size: 10px
+                  color:$color-red
+                  font-weight: 200
+              &.oldPrice
+                font-size: 10px
+                line-height: 24px
+                color: rgb(147,153,159)
+                font-weight: 700
+                text-decoration: line-through
+                mark
+                  background: none
+                  font-size: 10px
+                  color:rgb(147,153,159)
+                  font-weight: 200
+
+  .shop-wrap
+    position: absolute
+    left:0
+    bottom:0
+    width: 100%
+    height: 48px
 </style>
