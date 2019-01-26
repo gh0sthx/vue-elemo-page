@@ -30,7 +30,9 @@
 			:selectType="selectType"
 			:onlyContent="onlyContent"
 			@select="onSelect"
-			@toggle="onToggle">
+			@toggle="onToggle"
+			v-if="ratings.length"
+			>
 		</rating-select>
 		<ul class="list">
 			<li class="list-item" v-for="(item,index) in computedRatings" :key="index">

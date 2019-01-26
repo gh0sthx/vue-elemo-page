@@ -73,7 +73,7 @@ const EVENT_LEAVE = 'leave'
 const EVENT_ADD = 'add'
 export default {
  	name: 'food',
-  	ixins: [ratingMixin],
+  	mixins: [ratingMixin],
 	props: {
 		food: {
 			type: Object
